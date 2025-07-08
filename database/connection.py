@@ -118,4 +118,38 @@ class DatabaseConnection:
         )
         ''')
         
+        # Tabla Factura
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Factura (
+            idFactura INTEGER PRIMARY KEY AUTOINCREMENT,
+            NumeroFactura TEXT UNIQUE NOT NULL,
+            Fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+            SubTotal REAL NOT NULL,
+            Impuesto REAL NOT NULL DEFAULT 0,
+            Total REAL NOT NULL,
+            Estado TEXT NOT NULL DEFAULT 'Pendiente',
+            Observaciones TEXT,
+            idVenta INTEGER,
+            idCliente INTEGER,
+            idEmpleado INTEGER,
+            FOREIGN KEY (idVenta) REFERENCES Venta(idVenta),
+            FOREIGN KEY (idCliente) REFERENCES Cliente(idCliente),
+            FOREIGN KEY (idEmpleado) REFERENCES Empleado(idEmpleado)
+        )
+        ''')
+        
+        # Tabla DetalleFactura
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS DetalleFactura (
+            idDetalleFactura INTEGER PRIMARY KEY AUTOINCREMENT,
+            Cantidad INTEGER NOT NULL,
+            PrecioUni REAL NOT NULL,
+            SubTotal REAL NOT NULL,
+            idProducto INTEGER,
+            idFactura INTEGER,
+            FOREIGN KEY (idProducto) REFERENCES Producto(idProducto),
+            FOREIGN KEY (idFactura) REFERENCES Factura(idFactura)
+        )
+        ''')
+        
         conn.commit()

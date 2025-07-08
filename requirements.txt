@@ -1,1 +1,11 @@
+# Dependencias del Sistema de Gestión de Ventas Dcorelp
+
+# GUI Framework
 ttkbootstrap==1.13.9
+
+# Exportación de archivos
+openpyxl==3.1.2
+pandas==2.0.3
+
+# Generación de PDFs
+reportlab==4.0.4

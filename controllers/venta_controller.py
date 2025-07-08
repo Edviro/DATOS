@@ -7,22 +7,36 @@ class VentaController:
         self.db = DatabaseConnection()
     
     def get_all_ventas(self):
-        """Obtiene todas las ventas"""
-        query = """SELECT v.*, c.NombreCli, e.NombreEmp 
-                 FROM Venta v
-                 LEFT JOIN Cliente c ON v.idCliente = c.idCliente
-                 LEFT JOIN Empleado e ON v.idEmpleado = e.idEmpleado
-                 ORDER BY v.Fecha DESC"""
+        """Obtiene todas las ventas con información de cliente y empleado"""
+        query = """
+        SELECT v.*, c.NombreCli as cliente_nombre, e.NombreEmp as empleado_nombre
+        FROM Venta v
+        LEFT JOIN Cliente c ON v.idCliente = c.idCliente
+        LEFT JOIN Empleado e ON v.idEmpleado = e.idEmpleado
+        ORDER BY v.Fecha DESC
+        """
+        
         rows = self.db.fetch_all(query)
-        return [{
-            'id': row['idVenta'],
-            'fecha': row['Fecha'],
-            'total': row['Total'],
-            'cliente': row['NombreCli'],
-            'empleado': row['NombreEmp'],
-            'id_cliente': row['idCliente'],
-            'id_empleado': row['idEmpleado']
-        } for row in rows]
+        ventas = []
+        
+        for row in rows:
+            venta = Venta(
+                id=row['idVenta'],
+                fecha=row['Fecha'],
+                total=row['Total'],
+                id_cliente=row['idCliente'],
+                id_empleado=row['idEmpleado']
+            )
+            # Agregar información adicional
+            venta.cliente_nombre = row['cliente_nombre']
+            venta.empleado_nombre = row['empleado_nombre']
+            ventas.append(venta)
+        
+        return ventas
+    
+    def listar_ventas(self):
+        """Alias para get_all_ventas - para compatibilidad con la vista de facturas"""
+        return self.get_all_ventas()
     
     def get_venta_by_id(self, id_venta):
         """Obtiene una venta por su ID"""
@@ -44,6 +58,29 @@ class VentaController:
             'id_cliente': row['idCliente'],
             'id_empleado': row['idEmpleado']
         }
+    
+    def obtener_venta(self, id_venta):
+        """Obtiene una venta por su ID - retorna objeto Venta"""
+        query = """SELECT v.*, c.NombreCli, e.NombreEmp 
+                 FROM Venta v
+                 LEFT JOIN Cliente c ON v.idCliente = c.idCliente
+                 LEFT JOIN Empleado e ON v.idEmpleado = e.idEmpleado
+                 WHERE v.idVenta = ?"""
+        row = self.db.fetch_one(query, (id_venta,))
+        if not row:
+            return None
+        
+        venta = Venta(
+            id=row['idVenta'],
+            fecha=row['Fecha'],
+            total=row['Total'],
+            id_cliente=row['idCliente'],
+            id_empleado=row['idEmpleado']
+        )
+        # Agregar información adicional
+        venta.cliente_nombre = row['NombreCli']
+        venta.empleado_nombre = row['NombreEmp']
+        return venta
     
     def get_detalles_venta(self, id_venta):
         """Obtiene los detalles de una venta"""
@@ -114,19 +151,26 @@ class VentaController:
     
     def buscar_ventas_por_cliente(self, id_cliente):
         """Busca ventas de un cliente específico"""
-        query = """SELECT v.*, c.NombreCli, e.NombreEmp 
+        query = """SELECT v.*, c.NombreCli as cliente_nombre, e.NombreEmp as empleado_nombre
                  FROM Venta v
                  LEFT JOIN Cliente c ON v.idCliente = c.idCliente
                  LEFT JOIN Empleado e ON v.idEmpleado = e.idEmpleado
                  WHERE v.idCliente = ?
                  ORDER BY v.Fecha DESC"""
         rows = self.db.fetch_all(query, (id_cliente,))
-        return [{
-            'id': row['idVenta'],
-            'fecha': row['Fecha'],
-            'total': row['Total'],
-            'cliente': row['NombreCli'],
-            'empleado': row['NombreEmp'],
-            'id_cliente': row['idCliente'],
-            'id_empleado': row['idEmpleado']
-        } for row in rows]
+        ventas = []
+        
+        for row in rows:
+            venta = Venta(
+                id=row['idVenta'],
+                fecha=row['Fecha'],
+                total=row['Total'],
+                id_cliente=row['idCliente'],
+                id_empleado=row['idEmpleado']
+            )
+            # Agregar información adicional
+            venta.cliente_nombre = row['cliente_nombre']
+            venta.empleado_nombre = row['empleado_nombre']
+            ventas.append(venta)
+        
+        return ventas

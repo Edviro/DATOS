@@ -289,3 +289,185 @@ class Empleado(BaseModel):
         return [cls(id=row['idEmpleado'], nombre=row['NombreEmp'], 
                    correo=row['CorreoEmp'], telefono=row['Telefono'], 
                    direccion=row['DireccionEmp']) for row in rows]
+
+class Factura(BaseModel):
+    def __init__(self, id=None, numero_factura=None, fecha=None, subtotal=None, 
+                 impuesto=None, total=None, estado='Pendiente', observaciones=None,
+                 id_venta=None, id_cliente=None, id_empleado=None):
+        super().__init__()
+        self.id = id
+        self.numero_factura = numero_factura
+        self.fecha = fecha
+        self.subtotal = subtotal
+        self.impuesto = impuesto
+        self.total = total
+        self.estado = estado
+        self.observaciones = observaciones
+        self.id_venta = id_venta
+        self.id_cliente = id_cliente
+        self.id_empleado = id_empleado
+    
+    def save(self):
+        """Guarda o actualiza una factura en la base de datos"""
+        if self.id is None:
+            query = """INSERT INTO Factura (NumeroFactura, Fecha, SubTotal, Impuesto, Total, 
+                      Estado, Observaciones, idVenta, idCliente, idEmpleado) 
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+            cursor = self.db.execute_query(query, (self.numero_factura, self.fecha, self.subtotal,
+                                                 self.impuesto, self.total, self.estado, 
+                                                 self.observaciones, self.id_venta, 
+                                                 self.id_cliente, self.id_empleado))
+            self.id = cursor.lastrowid
+        else:
+            query = """UPDATE Factura SET NumeroFactura = ?, Fecha = ?, SubTotal = ?, 
+                      Impuesto = ?, Total = ?, Estado = ?, Observaciones = ?, 
+                      idVenta = ?, idCliente = ?, idEmpleado = ? WHERE idFactura = ?"""
+            self.db.execute_query(query, (self.numero_factura, self.fecha, self.subtotal,
+                                        self.impuesto, self.total, self.estado, 
+                                        self.observaciones, self.id_venta, 
+                                        self.id_cliente, self.id_empleado, self.id))
+        return self.id
+    
+    def delete(self):
+        """Elimina una factura de la base de datos"""
+        if self.id:
+            query = "DELETE FROM Factura WHERE idFactura = ?"
+            self.db.execute_query(query, (self.id,))
+            return True
+        return False
+    
+    @classmethod
+    def get_by_id(cls, id):
+        """Obtiene una factura por su ID"""
+        db = DatabaseConnection()
+        query = "SELECT * FROM Factura WHERE idFactura = ?"
+        row = db.fetch_one(query, (id,))
+        if row:
+            return cls(id=row['idFactura'], numero_factura=row['NumeroFactura'],
+                      fecha=row['Fecha'], subtotal=row['SubTotal'], 
+                      impuesto=row['Impuesto'], total=row['Total'],
+                      estado=row['Estado'], observaciones=row['Observaciones'],
+                      id_venta=row['idVenta'], id_cliente=row['idCliente'],
+                      id_empleado=row['idEmpleado'])
+        return None
+    
+    @classmethod
+    def get_all(cls):
+        """Obtiene todas las facturas"""
+        db = DatabaseConnection()
+        query = "SELECT * FROM Factura ORDER BY Fecha DESC"
+        rows = db.fetch_all(query)
+        return [cls(id=row['idFactura'], numero_factura=row['NumeroFactura'],
+                   fecha=row['Fecha'], subtotal=row['SubTotal'], 
+                   impuesto=row['Impuesto'], total=row['Total'],
+                   estado=row['Estado'], observaciones=row['Observaciones'],
+                   id_venta=row['idVenta'], id_cliente=row['idCliente'],
+                   id_empleado=row['idEmpleado']) for row in rows]
+    
+    @classmethod
+    def get_by_numero(cls, numero_factura):
+        """Obtiene una factura por su número"""
+        db = DatabaseConnection()
+        query = "SELECT * FROM Factura WHERE NumeroFactura = ?"
+        row = db.fetch_one(query, (numero_factura,))
+        if row:
+            return cls(id=row['idFactura'], numero_factura=row['NumeroFactura'],
+                      fecha=row['Fecha'], subtotal=row['SubTotal'], 
+                      impuesto=row['Impuesto'], total=row['Total'],
+                      estado=row['Estado'], observaciones=row['Observaciones'],
+                      id_venta=row['idVenta'], id_cliente=row['idCliente'],
+                      id_empleado=row['idEmpleado'])
+        return None
+    
+    @classmethod
+    def get_by_cliente(cls, id_cliente):
+        """Obtiene facturas por cliente"""
+        db = DatabaseConnection()
+        query = "SELECT * FROM Factura WHERE idCliente = ? ORDER BY Fecha DESC"
+        rows = db.fetch_all(query, (id_cliente,))
+        return [cls(id=row['idFactura'], numero_factura=row['NumeroFactura'],
+                   fecha=row['Fecha'], subtotal=row['SubTotal'], 
+                   impuesto=row['Impuesto'], total=row['Total'],
+                   estado=row['Estado'], observaciones=row['Observaciones'],
+                   id_venta=row['idVenta'], id_cliente=row['idCliente'],
+                   id_empleado=row['idEmpleado']) for row in rows]
+    
+    @classmethod
+    def get_by_estado(cls, estado):
+        """Obtiene facturas por estado"""
+        db = DatabaseConnection()
+        query = "SELECT * FROM Factura WHERE Estado = ? ORDER BY Fecha DESC"
+        rows = db.fetch_all(query, (estado,))
+        return [cls(id=row['idFactura'], numero_factura=row['NumeroFactura'],
+                   fecha=row['Fecha'], subtotal=row['SubTotal'], 
+                   impuesto=row['Impuesto'], total=row['Total'],
+                   estado=row['Estado'], observaciones=row['Observaciones'],
+                   id_venta=row['idVenta'], id_cliente=row['idCliente'],
+                   id_empleado=row['idEmpleado']) for row in rows]
+
+class DetalleFactura(BaseModel):
+    def __init__(self, id=None, cantidad=None, precio_unitario=None, subtotal=None,
+                 id_producto=None, id_factura=None):
+        super().__init__()
+        self.id = id
+        self.cantidad = cantidad
+        self.precio_unitario = precio_unitario
+        self.subtotal = subtotal
+        self.id_producto = id_producto
+        self.id_factura = id_factura
+    
+    def save(self):
+        """Guarda o actualiza un detalle de factura en la base de datos"""
+        if self.id is None:
+            query = """INSERT INTO DetalleFactura (Cantidad, PrecioUni, SubTotal, idProducto, idFactura) 
+                      VALUES (?, ?, ?, ?, ?)"""
+            cursor = self.db.execute_query(query, (self.cantidad, self.precio_unitario, 
+                                                 self.subtotal, self.id_producto, self.id_factura))
+            self.id = cursor.lastrowid
+        else:
+            query = """UPDATE DetalleFactura SET Cantidad = ?, PrecioUni = ?, SubTotal = ?, 
+                      idProducto = ?, idFactura = ? WHERE idDetalleFactura = ?"""
+            self.db.execute_query(query, (self.cantidad, self.precio_unitario, self.subtotal,
+                                        self.id_producto, self.id_factura, self.id))
+        return self.id
+    
+    def delete(self):
+        """Elimina un detalle de factura de la base de datos"""
+        if self.id:
+            query = "DELETE FROM DetalleFactura WHERE idDetalleFactura = ?"
+            self.db.execute_query(query, (self.id,))
+            return True
+        return False
+    
+    @classmethod
+    def get_by_factura(cls, id_factura):
+        """Obtiene todos los detalles de una factura"""
+        db = DatabaseConnection()
+        query = """SELECT df.*, p.NombrePro as producto_nombre 
+                  FROM DetalleFactura df 
+                  JOIN Producto p ON df.idProducto = p.idProducto 
+                  WHERE df.idFactura = ?"""
+        rows = db.fetch_all(query, (id_factura,))
+        return [cls(id=row['idDetalleFactura'], cantidad=row['Cantidad'],
+                   precio_unitario=row['PrecioUni'], subtotal=row['SubTotal'],
+                   id_producto=row['idProducto'], id_factura=row['idFactura']) for row in rows]
+    
+    @classmethod
+    def get_by_id(cls, id):
+        """Obtiene un detalle de factura por su ID"""
+        db = DatabaseConnection()
+        query = "SELECT * FROM DetalleFactura WHERE idDetalleFactura = ?"
+        row = db.fetch_one(query, (id,))
+        if row:
+            return cls(id=row['idDetalleFactura'], cantidad=row['Cantidad'],
+                      precio_unitario=row['PrecioUni'], subtotal=row['SubTotal'],
+                      id_producto=row['idProducto'], id_factura=row['idFactura'])
+        return None
+    
+    @classmethod
+    def delete_by_factura(cls, id_factura):
+        """Elimina todos los detalles de una factura"""
+        db = DatabaseConnection()
+        query = "DELETE FROM DetalleFactura WHERE idFactura = ?"
+        db.execute_query(query, (id_factura,))
+        return True

@@ -9,6 +9,10 @@ class EmpleadoController:
         """Obtiene todos los empleados"""
         return Empleado.get_all()
     
+    def listar_empleados(self):
+        """Alias para get_all_empleados - para compatibilidad con la vista de facturas"""
+        return self.get_all_empleados()
+    
     def get_empleado_by_id(self, id):
         """Obtiene un empleado por su ID"""
         return Empleado.get_by_id(id)

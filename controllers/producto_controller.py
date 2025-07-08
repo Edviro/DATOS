@@ -79,3 +79,11 @@ class ProductoController:
         if row:
             return row['NombreCat']
         return "Categoría no encontrada"
+    
+    def listar_productos(self):
+        """Alias para get_all_productos para compatibilidad"""
+        return self.get_all_productos()
+    
+    def obtener_producto(self, id):
+        """Alias para get_producto_by_id para compatibilidad"""
+        return self.get_producto_by_id(id)

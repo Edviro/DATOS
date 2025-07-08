@@ -9,6 +9,10 @@ class ClienteController:
         """Obtiene todos los clientes"""
         return Cliente.get_all()
     
+    def listar_clientes(self):
+        """Alias para get_all_clientes - para compatibilidad con la vista de facturas"""
+        return self.get_all_clientes()
+    
     def get_cliente_by_id(self, id):
         """Obtiene un cliente por su ID"""
         return Cliente.get_by_id(id)

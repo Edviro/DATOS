@@ -12,8 +12,9 @@ from utils.validators import validate_required, validate_integer
 from utils.helpers import format_currency, format_date, calculate_subtotal
 
 class VentaView:
-    def __init__(self, parent):
+    def __init__(self, parent, modo='nueva'):
         self.parent = parent
+        self.modo = modo  # 'nueva' o 'historial'
         self.controller = VentaController()
         self.producto_controller = ProductoController()
         self.cliente_controller = ClienteController()
@@ -38,7 +39,10 @@ class VentaView:
         self.create_widgets()
         
         # Cargar datos iniciales
-        self.load_combos()
+        if self.modo == 'nueva':
+            self.load_combos()
+        else:
+            self.load_historial()
     
     def create_widgets(self):
         """Crea los widgets de la interfaz"""
@@ -343,3 +347,207 @@ class VentaView:
             self.load_combos()
         else:
             messagebox.showerror("Error", "No se pudo registrar la venta")
+    
+    def load_historial(self):
+        """Carga el historial de ventas para modo consulta"""
+        # Crear interfaz simplificada para historial
+        self.create_historial_widgets()
+        
+        # Cargar ventas
+        self.cargar_ventas_historial()
+    
+    def create_historial_widgets(self):
+        """Crea widgets específicos para el modo historial"""
+        # Limpiar el parent
+        for widget in self.parent.winfo_children():
+            widget.destroy()
+        
+        # Frame principal
+        main_frame = ttk.Frame(self.parent)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Título
+        title_frame = ttk.Frame(main_frame)
+        title_frame.pack(fill=tk.X, pady=(0, 10))
+        ttk.Label(title_frame, text="Historial de Ventas", font=("Helvetica", 16, "bold")).pack(side=tk.LEFT)
+        
+        # Frame de filtros
+        filter_frame = ttk.LabelFrame(main_frame, text="Filtros", padding=10)
+        filter_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # Filtro por fecha
+        ttk.Label(filter_frame, text="Desde:").grid(row=0, column=0, sticky=tk.W, padx=5)
+        self.fecha_desde = ttk.DateEntry(filter_frame)
+        self.fecha_desde.grid(row=0, column=1, padx=5)
+        
+        ttk.Label(filter_frame, text="Hasta:").grid(row=0, column=2, sticky=tk.W, padx=5)
+        self.fecha_hasta = ttk.DateEntry(filter_frame)
+        self.fecha_hasta.grid(row=0, column=3, padx=5)
+        
+        # Botón filtrar
+        ttk.Button(filter_frame, text="Filtrar", command=self.filtrar_ventas).grid(row=0, column=4, padx=10)
+        ttk.Button(filter_frame, text="Limpiar", command=self.limpiar_filtros).grid(row=0, column=5, padx=5)
+        
+        # Tabla de ventas
+        table_frame = ttk.LabelFrame(main_frame, text="Ventas Registradas", padding=10)
+        table_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Treeview para ventas
+        columns = ("id", "fecha", "cliente", "empleado", "total", "estado")
+        self.tree_ventas = ttk.Treeview(table_frame, columns=columns, show="headings")
+        self.tree_ventas.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+        
+        # Configurar columnas
+        self.tree_ventas.heading("id", text="ID")
+        self.tree_ventas.heading("fecha", text="Fecha")
+        self.tree_ventas.heading("cliente", text="Cliente")
+        self.tree_ventas.heading("empleado", text="Empleado")
+        self.tree_ventas.heading("total", text="Total")
+        self.tree_ventas.heading("estado", text="Estado")
+        
+        self.tree_ventas.column("id", width=50)
+        self.tree_ventas.column("fecha", width=100)
+        self.tree_ventas.column("cliente", width=200)
+        self.tree_ventas.column("empleado", width=200)
+        self.tree_ventas.column("total", width=100)
+        self.tree_ventas.column("estado", width=100)
+        
+        # Scrollbar para ventas
+        scrollbar_ventas = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=self.tree_ventas.yview)
+        self.tree_ventas.configure(yscrollcommand=scrollbar_ventas.set)
+        scrollbar_ventas.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Botones de acción
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(fill=tk.X, pady=10)
+        
+        ttk.Button(btn_frame, text="Ver Detalle", command=self.ver_detalle_venta, bootstyle=INFO).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Actualizar", command=self.cargar_ventas_historial).pack(side=tk.LEFT, padx=5)
+    
+    def cargar_ventas_historial(self):
+        """Carga todas las ventas en el historial"""
+        # Limpiar tabla
+        for item in self.tree_ventas.get_children():
+            self.tree_ventas.delete(item)
+        
+        # Obtener ventas
+        ventas = self.controller.get_all_ventas()
+        
+        # Insertar ventas en la tabla
+        for venta in ventas:
+            estado = "Facturada" if hasattr(venta, 'facturada') and venta.facturada else "Pendiente"
+            self.tree_ventas.insert("", tk.END, values=(
+                venta.id,
+                format_date(venta.fecha),
+                venta.cliente_nombre if hasattr(venta, 'cliente_nombre') else 'N/A',
+                venta.empleado_nombre if hasattr(venta, 'empleado_nombre') else 'N/A',
+                format_currency(venta.total),
+                estado
+            ))
+    
+    def filtrar_ventas(self):
+        """Filtra ventas por fecha"""
+        fecha_desde = self.fecha_desde.entry.get()
+        fecha_hasta = self.fecha_hasta.entry.get()
+        
+        # Limpiar tabla
+        for item in self.tree_ventas.get_children():
+            self.tree_ventas.delete(item)
+        
+        # Obtener ventas filtradas
+        ventas = self.controller.buscar_ventas_por_fecha(fecha_desde, fecha_hasta)
+        
+        # Insertar ventas filtradas
+        for venta in ventas:
+            estado = "Facturada" if hasattr(venta, 'facturada') and venta.facturada else "Pendiente"
+            self.tree_ventas.insert("", tk.END, values=(
+                venta.id,
+                format_date(venta.fecha),
+                venta.cliente_nombre if hasattr(venta, 'cliente_nombre') else 'N/A',
+                venta.empleado_nombre if hasattr(venta, 'empleado_nombre') else 'N/A',
+                format_currency(venta.total),
+                estado
+            ))
+    
+    def limpiar_filtros(self):
+        """Limpia los filtros y recarga todas las ventas"""
+        self.fecha_desde.entry.delete(0, tk.END)
+        self.fecha_hasta.entry.delete(0, tk.END)
+        self.cargar_ventas_historial()
+    
+    def ver_detalle_venta(self):
+        """Muestra el detalle de la venta seleccionada"""
+        selected_item = self.tree_ventas.selection()
+        if not selected_item:
+            messagebox.showwarning("Advertencia", "Seleccione una venta para ver el detalle")
+            return
+        
+        item = self.tree_ventas.item(selected_item[0])
+        venta_id = item["values"][0]
+        
+        # Crear ventana de detalle
+        detalle_window = tk.Toplevel(self.parent)
+        detalle_window.title(f"Detalle de Venta #{venta_id}")
+        detalle_window.geometry("700x500")
+        detalle_window.resizable(True, True)
+        
+        # Frame principal
+        main_frame = ttk.Frame(detalle_window)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Título
+        title_label = ttk.Label(main_frame, text=f"Detalle de Venta #{venta_id}", font=("Helvetica", 14, "bold"))
+        title_label.pack(pady=(0, 10))
+        
+        # Obtener detalles de la venta
+        detalles = self.controller.get_detalles_venta(venta_id)
+        
+        if not detalles:
+            ttk.Label(main_frame, text="No se encontraron detalles para esta venta.", font=("Helvetica", 12)).pack(pady=20)
+            return
+        
+        # Frame para la tabla
+        table_frame = ttk.Frame(main_frame)
+        table_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Crear tabla de detalles
+        columns = ("producto", "cantidad", "precio", "subtotal")
+        tree_detalle = ttk.Treeview(table_frame, columns=columns, show="headings")
+        tree_detalle.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree_detalle.yview)
+        tree_detalle.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Configurar columnas
+        tree_detalle.heading("producto", text="Producto")
+        tree_detalle.heading("cantidad", text="Cantidad")
+        tree_detalle.heading("precio", text="Precio Unit.")
+        tree_detalle.heading("subtotal", text="Subtotal")
+        
+        tree_detalle.column("producto", width=300)
+        tree_detalle.column("cantidad", width=100)
+        tree_detalle.column("precio", width=120)
+        tree_detalle.column("subtotal", width=120)
+        
+        # Insertar detalles
+        total_venta = 0
+        for detalle in detalles:
+            tree_detalle.insert("", tk.END, values=(
+                detalle['producto'],
+                detalle['cantidad'],
+                format_currency(detalle['precio_uni']),
+                format_currency(detalle['subtotal'])
+            ))
+            total_venta += detalle['subtotal']
+        
+        # Frame para el total
+        total_frame = ttk.Frame(main_frame)
+        total_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        ttk.Label(total_frame, text="Total de la Venta:", font=("Helvetica", 12, "bold")).pack(side=tk.RIGHT, padx=(0, 10))
+        ttk.Label(total_frame, text=format_currency(total_venta), font=("Helvetica", 12, "bold"), foreground="blue").pack(side=tk.RIGHT)
+        
+        # Botón cerrar
+        ttk.Button(main_frame, text="Cerrar", command=detalle_window.destroy).pack(pady=(10, 0))

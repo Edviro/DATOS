@@ -12,6 +12,7 @@ from .empleado_view import EmpleadoView
 from .venta_view import VentaView
 from .reporte_view import ReporteView
 from .config_view import ConfigView
+from .factura_view import FacturaView
 
 class MainWindow:
     def __init__(self, root):
@@ -57,9 +58,15 @@ class MainWindow:
         ventas_menu.add_command(label="Historial de Ventas", command=self.show_historial_ventas)
         self.menu.add_cascade(label="Ventas", menu=ventas_menu)
         
+        # Menú Facturación
+        facturacion_menu = tk.Menu(self.menu, tearoff=0)
+        facturacion_menu.add_command(label="Gestión de Facturas", command=self.show_facturas)
+        facturacion_menu.add_command(label="Generar desde Venta", command=self.show_generar_factura)
+        self.menu.add_cascade(label="Facturación", menu=facturacion_menu)
+        
         # Menú Reportes
         reportes_menu = tk.Menu(self.menu, tearoff=0)
-        reportes_menu.add_command(label="Ventas por Período", command=self.show_reporte_ventas)
+        reportes_menu.add_command(label="Reportes de Ventas", command=self.show_reporte_ventas)
         reportes_menu.add_command(label="Productos más Vendidos", command=self.show_reporte_productos)
         reportes_menu.add_command(label="Clientes Frecuentes", command=self.show_reporte_clientes)
         reportes_menu.add_command(label="Stock Bajo", command=self.show_reporte_stock)
@@ -97,8 +104,11 @@ class MainWindow:
         btn_clientes = ttk.Button(self.sidebar, text="Clientes", width=20, command=self.show_clientes)
         btn_clientes.pack(pady=5)
         
-        btn_reportes = ttk.Button(self.sidebar, text="Reportes", width=20, command=self.show_reporte_ventas)
-        btn_reportes.pack(pady=5)
+        btn_historial = ttk.Button(self.sidebar, text="Historial Ventas", width=20, command=self.show_historial_ventas)
+        btn_historial.pack(pady=5)
+        
+        btn_facturas = ttk.Button(self.sidebar, text="Facturas", width=20, bootstyle=INFO, command=self.show_facturas)
+        btn_facturas.pack(pady=5)
         
         # Área de contenido principal
         self.content_frame = ttk.Frame(self.main_frame)
@@ -170,17 +180,25 @@ class MainWindow:
                                 width=15, command=self.show_clientes)
         btn_clientes.grid(row=0, column=2, padx=10, pady=10)
         
-        btn_reportes = ttk.Button(quick_access, text="Reportes", 
-                                width=15, command=self.show_reporte_ventas)
-        btn_reportes.grid(row=1, column=0, padx=10, pady=10)
+        btn_historial = ttk.Button(quick_access, text="Historial Ventas", 
+                                width=15, command=self.show_historial_ventas)
+        btn_historial.grid(row=1, column=0, padx=10, pady=10)
         
         btn_empleados = ttk.Button(quick_access, text="Empleados", 
                                  width=15, command=self.show_empleados)
         btn_empleados.grid(row=1, column=1, padx=10, pady=10)
         
+        btn_facturas = ttk.Button(quick_access, text="Facturas", 
+                                width=15, bootstyle=INFO, command=self.show_facturas)
+        btn_facturas.grid(row=1, column=2, padx=10, pady=10)
+        
+        btn_reportes = ttk.Button(quick_access, text="Reportes", 
+                              width=15, command=self.show_reporte_ventas)
+        btn_reportes.grid(row=2, column=0, padx=10, pady=10)
+        
         btn_config = ttk.Button(quick_access, text="Configuración", 
                               width=15, command=self.show_config)
-        btn_config.grid(row=1, column=2, padx=10, pady=10)
+        btn_config.grid(row=2, column=1, padx=10, pady=10)
     
     def clear_content_frame(self):
         """Limpia el contenido del frame principal"""
@@ -215,8 +233,9 @@ class MainWindow:
     
     def show_historial_ventas(self):
         self.clear_content_frame()
-        # Implementar vista de historial de ventas
-        ttk.Label(self.content_frame, text="Historial de Ventas", font=("Helvetica", 20)).pack(pady=20)
+        from views.venta_view import VentaView
+        # Crear una instancia de VentaView pero en modo solo lectura/consulta
+        self.historial_view = VentaView(self.content_frame, modo='historial')
     
     def show_reporte_ventas(self):
         self.clear_content_frame()
@@ -238,6 +257,17 @@ class MainWindow:
         self.clear_content_frame()
         ttk.Label(self.content_frame, text="Manual de Usuario", font=("Helvetica", 20)).pack(pady=20)
         # Aquí se implementará la vista del manual de usuario
+    
+    def show_facturas(self):
+        """Muestra la vista de gestión de facturas"""
+        self.clear_content_frame()
+        self.factura_view = FacturaView(self.content_frame)
+    
+    def show_generar_factura(self):
+        """Muestra la vista para generar facturas desde ventas"""
+        self.clear_content_frame()
+        from views.generar_factura_view import GenerarFacturaView
+        self.generar_factura_view = GenerarFacturaView(self.content_frame)
     
     def show_about(self):
         self.clear_content_frame()
